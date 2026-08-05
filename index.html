@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>NQ Trading Assistant</title>
+
+<!-- Makes this behave like an installed app when added to the iPhone Home Screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NQ Trading">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  :root{
+    --black:#000000;
+    --surface:#1C1C1E;
+    --surface-2:#242426;
+    --sep:#2C2C2E;
+    --label:#FFFFFF;
+    --label-2:#8E8E93;
+    --label-3:#5C5C5E;
+    --green:#30D158;
+    --amber:#FF9F0A;
+    --red:#FF453A;
+    --blue:#0A84FF;
+    --purple:#BF5AF2;
+    --cyan:#64D2FF;
+    --navy:#2A4B9B;
+    --navy-deep:#16295C;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:#0d0d0d;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,sans-serif;
+    display:flex;justify-content:center;align-items:flex-start;
+    padding:40px 16px;min-height:100vh;
+  }
+
+  .phone{
+    width:390px;height:844px;background:var(--black);
+    border-radius:55px;border:10px solid #1a1a1a;
+    box-shadow:0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px #2a2a2a;
+    overflow:hidden;position:relative;display:flex;flex-direction:column;
+  }
+  /* On a real phone, drop the desktop "mockup" chrome and just fill the screen like a real app */
+  @media (max-width: 500px){
+    body{padding:0;align-items:stretch;}
+    .phone{
+      width:100vw;height:100dvh;border-radius:0;border:none;box-shadow:none;
+    }
+    .dynamic-island{display:none;}
+  }
+  .dynamic-island{
+    position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    width:126px;height:37px;background:#000;border-radius:20px;z-index:20;
+  }
+  .statusbar{
+    height:54px;flex-shrink:0;display:flex;align-items:flex-end;
+    justify-content:space-between;padding:0 26px 8px;color:var(--label);
+    font-size:15px;font-weight:600;
+  }
+  .statusbar .icons{display:flex;gap:5px;align-items:center;}
+
+  /* TODAY DASHBOARD CARD */
+  .today-card{
+    margin:8px 14px 18px;padding:18px;border-radius:20px;
+    background:linear-gradient(160deg,#1E1E20,#161618);
+    border:1px solid var(--sep);
+    transition:border-color 0.25s ease;
+  }
+  .today-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+  .today-date{font-size:18px;font-weight:700;color:var(--label);}
+  .today-verdict{
+    font-size:11px;font-weight:700;padding:4px 9px;border-radius:8px;letter-spacing:0.3px;
+  }
+  .today-verdict.good{background:rgba(48,209,88,0.15);color:var(--green);}
+  .today-verdict.bad{background:rgba(255,69,58,0.15);color:var(--red);}
+  .today-verdict.closed{background:rgba(142,142,147,0.18);color:var(--label-2);}
+  .today-card.st-good{border-color:rgba(48,209,88,0.35);}
+  .today-card.st-bad{border-color:rgba(255,69,58,0.3);}
+  .today-card.st-closed{border-color:var(--sep);}
+
+  .clocks{display:flex;gap:10px;}
+  .next-event{
+    display:flex;align-items:center;gap:7px;margin-top:14px;padding-top:14px;
+    border-top:1px solid var(--sep);font-size:12.5px;color:var(--label-2);
+  }
+  .ne-dot{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;}
+  .ne-label{color:var(--label-3);}
+  .ne-text{color:var(--label);font-weight:600;}
+  .clock-chip{
+    flex:1;background:var(--surface-2);border-radius:14px;padding:10px 12px;
+  }
+  .clock-chip .cc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+  .clock-chip .city{font-size:11px;color:var(--label-2);font-weight:600;letter-spacing:0.3px;}
+  .clock-chip .sess{width:6px;height:6px;border-radius:50%;}
+  .clock-chip .sess.open{background:var(--green);box-shadow:0 0 5px var(--green);}
+  .clock-chip .sess.closed{background:var(--label-3);}
+  .clock-chip .cc-time{font-size:19px;font-weight:700;color:var(--label);font-variant-numeric:tabular-nums;}
+  .clock-chip .cc-state{font-size:10px;color:var(--label-3);margin-top:1px;}
+
+  /* MONTH NAV */
+  .month-nav{padding:2px 20px 12px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;}
+  .month-title{font-size:24px;font-weight:800;color:var(--label);letter-spacing:-0.4px;}
+  .month-stat{font-size:12px;color:var(--label-3);margin-top:2px;}
+  .nav-btns{display:flex;gap:8px;}
+  .nav-btn{
+    width:32px;height:32px;border-radius:16px;background:var(--surface);
+    display:flex;align-items:center;justify-content:center;color:var(--blue);
+    font-size:16px;font-weight:700;cursor:pointer;user-select:none;
+  }
+  .nav-btn:active{background:var(--surface-2);}
+
+  .rules-strip{
+    margin:0 14px 14px;padding:11px 14px;background:var(--surface);
+    border-radius:14px;display:flex;gap:10px;align-items:center;
+  }
+  .rules-strip .ic{
+    width:26px;height:26px;border-radius:8px;background:rgba(255,159,10,0.15);
+    display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+  }
+  .rules-strip .txt{font-size:11.5px;color:var(--label-2);line-height:1.4;}
+  .rules-strip .txt b{color:var(--label);font-weight:600;}
+
+  .content{flex:1;overflow-y:auto;padding-bottom:12px;}
+  .screen{display:none;padding:0 0;}
+  .screen.active{display:block;}
+
+  /* WEEK VIEW */
+  .nfp-banner{
+    margin:0 14px 12px;padding:10px 14px;border-radius:14px;
+    background:rgba(48,209,88,0.12);border:1px solid rgba(48,209,88,0.35);
+    color:var(--green);font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:8px;
+  }
+  .nfp-banner-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0;}
+  .week-row{
+    margin:0 14px 8px;padding:12px 14px;border-radius:14px;background:var(--surface);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .week-row.today{box-shadow:inset 0 0 0 1.5px var(--blue);}
+  .wr-left{display:flex;align-items:center;gap:12px;}
+  .wr-date{text-align:center;width:38px;flex-shrink:0;}
+  .wr-day{font-size:10px;color:var(--label-3);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
+  .wr-num{font-size:18px;font-weight:700;color:var(--label);}
+  .week-row.dim .wr-num, .week-row.dim .wr-day{color:var(--label-3);}
+  .wr-info .wr-status{font-size:12.5px;font-weight:600;}
+  .wr-info .wr-events{font-size:11px;color:var(--label-3);margin-top:1px;}
+  .wr-status.good{color:var(--green);}
+  .wr-status.bad{color:var(--red);}
+  .wr-status.closed{color:var(--label-2);}
+  .wr-hi{width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0;box-shadow:0 0 4px rgba(255,159,10,0.7);}
+
+  /* ALERTS SCREEN */
+  .notif-preview{
+    margin:0 14px;padding:12px 14px;border-radius:16px;background:var(--surface-2);
+    border:1px solid var(--sep);
+  }
+  .notif-app{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--label-3);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px;}
+  .notif-icon{
+    width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,var(--blue),#0040DD);
+    display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;
+  }
+  .notif-title{font-size:13.5px;font-weight:700;color:var(--label);margin-bottom:2px;}
+  .notif-body{font-size:12.5px;color:var(--label-2);line-height:1.4;}
+  .notif-note{font-size:11px;color:var(--label-3);text-align:center;margin:12px 20px 4px;line-height:1.5;}
+
+  .settings-card{margin:18px 14px 0;background:var(--surface);border-radius:16px;padding:2px 16px;}
+  .settings-row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 0;border-bottom:1px solid var(--sep);
+  }
+  .st-title{font-size:13.5px;color:var(--label);font-weight:600;}
+  .st-sub{font-size:11px;color:var(--label-3);margin-top:2px;}
+  .toggle{
+    width:46px;height:27px;border-radius:14px;background:var(--surface-2);
+    position:relative;flex-shrink:0;cursor:pointer;transition:background 0.2s ease;
+    border:1px solid var(--sep);
+  }
+  .toggle::after{
+    content:'';position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;
+    background:#fff;transition:transform 0.2s ease;box-shadow:0 1px 3px rgba(0,0,0,0.4);
+  }
+  .toggle.on{background:var(--green);border-color:var(--green);}
+  .toggle.on::after{transform:translateX(19px);}
+
+  .rules-label{font-size:13px;font-weight:700;color:var(--label);margin-bottom:4px;}
+  .rules-sub{font-size:11.5px;color:var(--label-3);line-height:1.5;margin-bottom:14px;}
+  .add-date-row{display:flex;gap:8px;margin-bottom:2px;}
+  .add-date-row input[type=date]{
+    flex:1;background:var(--surface-2);border:1px solid var(--sep);border-radius:10px;
+    padding:8px 10px;color:var(--label);font-size:13px;font-family:inherit;color-scheme:dark;
+  }
+  .add-date-btn{
+    background:var(--blue);color:#fff;font-size:13px;font-weight:600;
+    padding:8px 18px;border-radius:10px;cursor:pointer;white-space:nowrap;
+  }
+  .add-date-btn:active{opacity:0.8;}
+  .custom-date-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:11px 0;border-bottom:1px solid var(--sep);font-size:13px;color:var(--label);
+  }
+  .custom-date-row:last-child{border-bottom:none;}
+  .custom-date-remove{color:var(--red);font-size:16px;cursor:pointer;font-weight:600;padding:0 4px;}
+  .custom-empty{font-size:12px;color:var(--label-3);padding:16px 0 2px;text-align:center;}
+
+  /* COMING SOON */
+  .coming-soon{margin:60px 30px 0;text-align:center;}
+  .cs-icon{font-size:34px;margin-bottom:14px;color:var(--label-3);}
+  .cs-title{font-size:16px;font-weight:700;color:var(--label);margin-bottom:8px;}
+  .cs-sub{font-size:12.5px;color:var(--label-3);line-height:1.5;}
+
+  .cal-card{margin:0 14px;background:var(--surface);border-radius:20px;padding:16px 12px 8px;box-shadow:0 8px 24px rgba(0,0,0,0.18);}
+  .weekday-row{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px;}
+  .weekday-row div{
+    text-align:center;color:var(--label-3);font-size:11px;font-weight:700;
+    letter-spacing:0.6px;padding-bottom:4px;
+  }
+  .weekday-row div:nth-child(6),.weekday-row div:nth-child(7){color:var(--label-3);opacity:0.6;}
+  .day-grid{display:grid;grid-template-columns:repeat(7,1fr);row-gap:7px;column-gap:2px;}
+  .day-cell{
+    position:relative;aspect-ratio:1/1;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;border-radius:13px;cursor:pointer;
+  }
+  .day-cell:active{transform:scale(0.94);}
+  .day-cell .num{font-size:15px;font-weight:600;color:var(--label);transition:color 0.15s ease;}
+  .day-cell.empty{visibility:hidden;cursor:default;}
+  .day-cell.empty:active{transform:none;}
+
+  /* Status: trade days get a soft green background tint so they pop at a glance.
+     No-trade / closed days stay untouched — only the number dims. */
+  .day-cell.trade{background:rgba(48,209,88,0.14);}
+  .day-cell.no-trade .num{color:var(--label-2);font-weight:500;}
+  .day-cell.closed .num{color:var(--label-3);font-weight:400;}
+  .day-cell.today{box-shadow:inset 0 0 0 1.5px var(--blue);}
+  .day-cell.today .num{color:var(--blue);font-weight:700;}
+  .day-cell.trade.today{background:rgba(48,209,88,0.14);box-shadow:inset 0 0 0 1.5px var(--blue);}
+
+  .dots{display:flex;gap:3px;margin-top:3px;height:5px;align-items:center;}
+  .dots span{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+  .dot-hol{background:var(--purple);}
+  .dot-buf{background:var(--label-3);}
+  .dot-nfp{background:var(--amber);}
+  .dot-exp{background:var(--navy);}
+
+  .hi-dot{
+    position:absolute;top:6px;right:8px;width:5px;height:5px;border-radius:50%;
+    background:var(--red);box-shadow:0 0 4px rgba(255,69,58,0.7);
+  }
+  .roll-bar{
+    position:absolute;left:16%;right:16%;bottom:3px;height:2px;border-radius:2px;
+    background:var(--navy-deep);box-shadow:0 0 3px rgba(74,111,201,0.7);
+  }
+
+  /* COLLAPSIBLE LEGEND */
+  .legend-card{margin:14px 14px 0;background:var(--surface);border-radius:16px;padding:14px 16px;}
+  .legend-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;}
+  .legend-title{font-size:12px;font-weight:700;color:var(--label-2);text-transform:uppercase;letter-spacing:0.5px;}
+  .chevron{font-size:12px;color:var(--label-3);transition:transform 0.25s ease;}
+  .chevron.open{transform:rotate(180deg);}
+  .legend-grid{
+    max-height:0;overflow:hidden;opacity:0;
+    transition:max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease;
+  }
+  .legend-grid.open{max-height:420px;opacity:1;margin-top:14px;}
+  .legend-group{padding:10px 0;border-bottom:1px solid var(--sep);}
+  .legend-group:last-child{border-bottom:none;padding-bottom:2px;}
+  .legend-group:first-child{padding-top:0;}
+  .legend-group-label{
+    font-size:10px;font-weight:700;color:var(--label-3);text-transform:uppercase;
+    letter-spacing:0.6px;margin-bottom:8px;
+  }
+  .legend-item{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--label);padding:5px 0;}
+  .lg-num{width:20px;text-align:center;font-weight:600;font-size:13px;flex-shrink:0;}
+  .lg-fill{
+    width:20px;height:20px;border-radius:6px;flex-shrink:0;
+    background:rgba(48,209,88,0.18);border:1px solid rgba(48,209,88,0.4);
+  }
+  .lg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .lg-bar{width:16px;height:2px;border-radius:2px;background:var(--navy-deep);box-shadow:0 0 3px rgba(74,111,201,0.7);flex-shrink:0;}
+
+  /* CONTRACT ROLLOVER CARD — collapsed to one row, expands on tap */
+  .contract-card{margin:14px 14px 0;background:var(--surface);border-radius:16px;padding:16px;}
+  .contract-row{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;}
+  .contract-code{font-size:20px;font-weight:800;color:var(--navy);letter-spacing:0.3px;}
+  .contract-right{display:flex;align-items:center;gap:10px;}
+  .contract-roll{font-size:13px;font-weight:600;color:var(--label-2);}
+  .contract-roll b{color:var(--label);font-size:15px;}
+  .contract-card .chevron{font-size:12px;color:var(--label-3);transition:transform 0.25s ease;}
+  .contract-card .chevron.open{transform:rotate(180deg);}
+  .bar-track{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;margin-top:12px;}
+  .bar-fill{height:100%;background:var(--navy);border-radius:2px;}
+  .bar-caption{font-size:11px;color:var(--label-3);margin-top:7px;}
+  .contract-expand{
+    max-height:0;overflow:hidden;opacity:0;
+    transition:max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease;
+  }
+  .contract-expand.open{max-height:260px;opacity:1;margin-top:14px;}
+  .contract-list{padding-top:12px;border-top:1px solid var(--sep);}
+  .contract-list-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 0;font-size:13px;color:var(--label-2);
+  }
+  .contract-list-row.front{color:var(--label);font-weight:600;}
+  .contract-list-row .clr-code{display:flex;align-items:center;gap:7px;}
+  .clr-badge{
+    font-size:9px;font-weight:700;color:var(--navy);background:rgba(42,75,155,0.18);
+    padding:2px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:0.3px;
+  }
+
+  .tabbar{
+    flex-shrink:0;display:flex;justify-content:space-around;align-items:center;
+    padding:8px 0 26px;background:rgba(28,28,30,0.94);border-top:1px solid var(--sep);
+  }
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--label-3);font-size:10px;font-weight:500;}
+  .tab.active{color:var(--blue);}
+  .tab .glyph{font-size:20px;}
+
+  /* DETAIL SHEET */
+  .backdrop{
+    position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:30;
+    opacity:0;pointer-events:none;transition:opacity 0.25s ease;
+  }
+  .backdrop.show{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;z-index:31;
+    background:var(--surface);border-radius:24px 24px 0 0;
+    padding:10px 20px 30px;max-height:72%;overflow-y:auto;
+    transform:translateY(100%);transition:transform 0.3s cubic-bezier(.32,.72,0,1);
+  }
+  .sheet.show{transform:translateY(0);}
+  .grabber{width:36px;height:5px;background:var(--label-3);border-radius:3px;margin:4px auto 14px;}
+  .sheet-date{font-size:20px;font-weight:800;color:var(--label);margin-bottom:4px;}
+  .verdict{
+    display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;
+    font-size:12px;font-weight:700;margin:8px 0 4px;
+  }
+  .verdict.good{background:rgba(48,209,88,0.15);color:var(--green);}
+  .verdict.bad{background:rgba(255,69,58,0.15);color:var(--red);}
+  .reason-list{margin:10px 0 6px;padding-left:0;list-style:none;}
+  .reason-list li{
+    font-size:12.5px;color:var(--label-2);padding:6px 0;border-bottom:1px solid var(--sep);
+    display:flex;gap:8px;align-items:flex-start;
+  }
+  .reason-list li:last-child{border-bottom:none;}
+  .reason-list li .b{color:var(--label-3);}
+
+  .sheet-sub{font-size:12px;font-weight:700;color:var(--label-2);text-transform:uppercase;letter-spacing:0.5px;margin:18px 0 8px;}
+  .ev-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--sep);}
+  .ev-row:last-child{border-bottom:none;}
+  .ev-left{display:flex;align-items:center;gap:9px;}
+  .ev-pip{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .ev-name{font-size:13px;color:var(--label);font-weight:500;}
+  .ev-time{font-size:11px;color:var(--label-3);}
+  .ev-vals{font-size:11px;color:var(--label-2);text-align:right;}
+  .no-events{font-size:12.5px;color:var(--label-3);padding:14px 0;text-align:center;}
+  .done-btn{
+    margin-top:20px;width:100%;padding:13px;background:var(--surface-2);border-radius:14px;
+    text-align:center;font-size:15px;font-weight:600;color:var(--blue);cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="dynamic-island"></div>
+  <div class="statusbar">
+    <div id="time">9:41</div>
+    <div class="icons"><span>••••</span><span>📶</span><span>🔋</span></div>
+  </div>
+
+  <div class="today-card">
+    <div class="today-top">
+      <div class="today-date" id="todayDate">—</div>
+      <div class="today-verdict" id="todayVerdict"></div>
+    </div>
+    <div class="clocks">
+      <div class="clock-chip">
+        <div class="cc-top"><span class="city">LONDON</span><span class="sess" id="lonDot"></span></div>
+        <div class="cc-time" id="lonTime">--:--</div>
+        <div class="cc-state" id="lonState">—</div>
+      </div>
+      <div class="clock-chip">
+        <div class="cc-top"><span class="city">NEW YORK</span><span class="sess" id="nyDot"></span></div>
+        <div class="cc-time" id="nyTime">--:--</div>
+        <div class="cc-state" id="nyState">—</div>
+      </div>
+    </div>
+    <div class="next-event" id="nextEventRow" style="display:none;">
+      <span class="ne-dot" id="nextEventDot"></span>
+      <span class="ne-label">Next:</span>
+      <span class="ne-text" id="nextEventText">—</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- MONTH SCREEN -->
+    <div class="screen active" id="screenMonth">
+      <div class="month-nav">
+        <div>
+          <div class="month-title" id="monthTitle">September 2026</div>
+          <div class="month-stat" id="monthStat">-- of -- trading days</div>
+        </div>
+        <div class="nav-btns">
+          <div class="nav-btn" id="prevBtn">‹</div>
+          <div class="nav-btn" id="nextBtn">›</div>
+        </div>
+      </div>
+
+      <div class="cal-card">
+        <div class="weekday-row"><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div></div>
+        <div class="day-grid" id="dayGrid"></div>
+      </div>
+
+      <div class="legend-card">
+        <div class="legend-header" id="legendHeader">
+          <div class="legend-title">Legend</div>
+          <div class="chevron" id="legendChevron">▾</div>
+        </div>
+        <div class="legend-grid" id="legendGrid">
+          <div class="legend-group">
+            <div class="legend-group-label">Status</div>
+            <div class="legend-item"><span class="lg-fill"></span>Trade day</div>
+            <div class="legend-item"><span class="lg-num" style="color:var(--label-2)">15</span>No-trade — your rule</div>
+            <div class="legend-item"><span class="lg-num" style="color:var(--label-3)">15</span>Market closed</div>
+          </div>
+          <div class="legend-group">
+            <div class="legend-group-label">Events</div>
+            <div class="legend-item"><span class="lg-dot" style="background:var(--red)"></span>High-impact event</div>
+            <div class="legend-item"><span class="lg-dot" style="background:var(--amber)"></span>NFP Friday</div>
+            <div class="legend-item"><span class="lg-dot" style="background:var(--purple)"></span>Bank holiday</div>
+            <div class="legend-item"><span class="lg-dot" style="background:var(--label-3)"></span>Holiday buffer</div>
+          </div>
+          <div class="legend-group">
+            <div class="legend-group-label">NQ Contract</div>
+            <div class="legend-item"><span class="lg-dot" style="background:var(--navy)"></span>Contract expiry</div>
+            <div class="legend-item"><span class="lg-bar"></span>Rollover window</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="contract-card" id="contractCard">
+        <div class="contract-row" id="contractHeader">
+          <div class="contract-code" id="frontCode">NQZ6</div>
+          <div class="contract-right">
+            <div class="contract-roll" id="rollHeadline">Roll over in <b>--</b> days</div>
+            <div class="chevron" id="contractChevron">▾</div>
+          </div>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="contractBar"></div></div>
+        <div class="bar-caption" id="contractBarCaption">Day -- of --</div>
+        <div class="contract-expand" id="contractExpand">
+          <div class="contract-list" id="contractList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEEK SCREEN -->
+    <div class="screen" id="screenWeek">
+      <div class="month-nav">
+        <div class="month-title" id="weekTitle" style="font-size:19px;">Week of —</div>
+        <div class="nav-btns">
+          <div class="nav-btn" id="prevWeekBtn">‹</div>
+          <div class="nav-btn" id="nextWeekBtn">›</div>
+        </div>
+      </div>
+      <div id="nfpBanner" class="nfp-banner" style="display:none;">
+        <span class="nfp-banner-dot"></span>NFP WEEK — Nonfarm Payrolls lands this Friday
+      </div>
+      <div id="weekList"></div>
+    </div>
+
+    <!-- ALERTS SCREEN -->
+    <div class="screen" id="screenAlerts">
+      <div class="month-nav"><div class="month-title" style="font-size:19px;">Alerts</div></div>
+
+      <div class="notif-preview">
+        <div class="notif-app"><span class="notif-icon">NQ</span>Trading Assistant · Sun 6:00pm</div>
+        <div class="notif-title">This Week's Outlook</div>
+        <div class="notif-body" id="weeklyDigestBody">—</div>
+      </div>
+      <div class="notif-preview" style="margin-top:10px;">
+        <div class="notif-app"><span class="notif-icon">NQ</span>Trading Assistant · now</div>
+        <div class="notif-title">Tomorrow: No-Trade Day</div>
+        <div class="notif-body">Buffer day — adjacent to Labor Day. Sitting this one out.</div>
+      </div>
+      <div class="notif-preview" style="margin-top:10px;">
+        <div class="notif-app"><span class="notif-icon">NQ</span>Trading Assistant · now</div>
+        <div class="notif-title">High-Impact Event Tomorrow</div>
+        <div class="notif-body">FOMC Rate Decision at 2:00pm ET. Expect volatility.</div>
+      </div>
+      <div class="notif-preview" style="margin-top:10px;">
+        <div class="notif-app"><span class="notif-icon">NQ</span>Trading Assistant · now</div>
+        <div class="notif-title">Rollover Window Opens Today</div>
+        <div class="notif-body">NQZ6 is rolling into NQH7 — liquidity starts shifting now.</div>
+      </div>
+      <div class="notif-note" id="pushStatusNote">Preview only — tap below to turn on real push notifications.</div>
+      <div class="add-date-btn" id="enablePushBtn" style="width:100%;text-align:center;margin-top:10px;">Enable Notifications</div>
+
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-text"><div class="st-title">Sunday night digest</div><div class="st-sub">A quick outlook for the week ahead, every Sunday evening</div></div>
+          <div class="toggle on" data-toggle data-pref="sundayDigest"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-text"><div class="st-title">Day-before reminder</div><div class="st-sub">Alert the evening before a no-trade day</div></div>
+          <div class="toggle on" data-toggle data-pref="dayBeforeReminder"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-text"><div class="st-title">High-impact event alerts</div><div class="st-sub">Notify ahead of red-flag releases</div></div>
+          <div class="toggle on" data-toggle data-pref="highImpactAlert"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-text"><div class="st-title">Morning summary</div><div class="st-sub">Daily 7am recap of today's status</div></div>
+          <div class="toggle" data-toggle data-pref="morningSummary"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-text"><div class="st-title">NFP week Monday notice</div><div class="st-sub">Flag when Monday flips back to a trade day</div></div>
+          <div class="toggle on" data-toggle data-pref="nfpMondayNotice"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-text"><div class="st-title">Rollover window alert</div><div class="st-sub">Notify when the front contract enters its roll window</div></div>
+          <div class="toggle on" data-toggle data-pref="rolloverAlert"></div>
+        </div>
+        <div class="settings-row" style="border-bottom:none;">
+          <div class="settings-text"><div class="st-title">Expiry approaching</div><div class="st-sub">Reminder a few days before contract expiry</div></div>
+          <div class="toggle" data-toggle data-pref="expiryApproaching"></div>
+        </div>
+      </div>
+      <div class="add-date-btn" id="testPushBtn" style="width:100%;text-align:center;margin-top:12px;background:var(--surface-2);color:var(--label-2);">Send Test Notification</div>
+    </div>
+
+    <!-- RULES SCREEN -->
+    <div class="screen" id="screenRules">
+      <div class="month-nav"><div class="month-title" style="font-size:19px;">Rules</div></div>
+
+      <div class="settings-card" style="padding:16px;margin-top:0;">
+        <div class="rules-label">Custom no-trade dates</div>
+        <div class="rules-sub">Add specific dates you're sitting out — holidays you're taking, planned time off, anything the automatic rules don't already cover.</div>
+        <div class="add-date-row">
+          <input type="date" id="customDateInput" />
+          <div class="add-date-btn" id="addDateBtn">Add</div>
+        </div>
+        <div id="customDateList"></div>
+      </div>
+
+      <div class="coming-soon" style="margin-top:36px;">
+        <div class="cs-icon">⚙</div>
+        <div class="cs-title">More rules coming soon</div>
+        <div class="cs-sub">Weekday toggles and buffer-day count will live here next.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab active" data-screen="month"><span class="glyph">▦</span>Month</div>
+    <div class="tab" data-screen="week"><span class="glyph">▤</span>Week</div>
+    <div class="tab" data-screen="alerts"><span class="glyph">◈</span>Alerts</div>
+    <div class="tab" data-screen="rules"><span class="glyph">⚙</span>Rules</div>
+  </div>
+
+  <div class="backdrop" id="backdrop"></div>
+  <div class="sheet" id="sheet">
+    <div class="grabber"></div>
+    <div class="sheet-date" id="sheetDate">—</div>
+    <div id="sheetVerdict"></div>
+    <ul class="reason-list" id="reasonList"></ul>
+    <div class="sheet-sub">Events This Day</div>
+    <div id="sheetEvents"></div>
+    <div class="done-btn" id="doneBtn">Done</div>
+  </div>
+</div>
+
+<script>
+/* ---------------- BACKEND CONFIG ----------------
+   Set this to your deployed Render URL once the backend is live, e.g.
+   'https://nq-backend-xxxx.onrender.com'. Leave as '' to run on mock data only. */
+const API_BASE = 'https://nq-backend-iytp.onrender.com';
+
+/* ---------------- US MARKET (NYSE/CME) HOLIDAYS — 2026 ---------------- */
+const holidays2026 = [
+  {y:2026,m:1,d:1,name:"New Year's Day"},
+  {y:2026,m:1,d:19,name:"Martin Luther King Jr. Day"},
+  {y:2026,m:2,d:16,name:"Presidents' Day"},
+  {y:2026,m:4,d:3,name:"Good Friday"},
+  {y:2026,m:5,d:25,name:"Memorial Day"},
+  {y:2026,m:6,d:19,name:"Juneteenth"},
+  {y:2026,m:7,d:3,name:"Independence Day (observed)"},
+  {y:2026,m:9,d:7,name:"Labor Day"},
+  {y:2026,m:11,d:26,name:"Thanksgiving Day"},
+  {y:2026,m:12,d:25,name:"Christmas Day"},
+];
+
+// Used only if the backend is unreachable (e.g. testing offline, or before you've deployed it)
+const FALLBACK_EVENTS = {
+  "2026-8": {
+    7: [{time:"08:30",name:"Nonfarm Payrolls",impact:"high",prior:"147K",fcst:"150K",actual:"—"}],
+    12:[{time:"08:30",name:"CPI (YoY)",impact:"high",prior:"2.8%",fcst:"2.7%",actual:"—"}],
+    18:[{time:"08:30",name:"Retail Sales",impact:"med",prior:"0.4%",fcst:"0.2%",actual:"—"}],
+    21:[{time:"09:45",name:"PMI Flash (Mfg)",impact:"med",prior:"49.1",fcst:"49.3",actual:"—"}],
+    27:[{time:"14:00",name:"FOMC Minutes",impact:"med",prior:"—",fcst:"—",actual:"—"}]
+  },
+  "2026-9": {
+    3: [{time:"08:30",name:"Initial Jobless Claims",impact:"low",prior:"221K",fcst:"224K",actual:"219K"}],
+    4: [
+      {time:"08:30",name:"Nonfarm Payrolls",impact:"high",prior:"142K",fcst:"165K",actual:"—"},
+      {time:"08:30",name:"Unemployment Rate",impact:"high",prior:"4.1%",fcst:"4.1%",actual:"—"}
+    ],
+    10:[{time:"08:30",name:"CPI (YoY)",impact:"high",prior:"2.9%",fcst:"2.8%",actual:"—"}],
+    16:[{time:"08:30",name:"Retail Sales",impact:"med",prior:"0.3%",fcst:"0.2%",actual:"—"}],
+    17:[{time:"14:00",name:"FOMC Rate Decision",impact:"high",prior:"4.25%",fcst:"4.25%",actual:"—"}],
+    23:[{time:"09:45",name:"PMI Flash (Mfg)",impact:"med",prior:"48.9",fcst:"49.1",actual:"—"}],
+    26:[{time:"08:30",name:"GDP (Final)",impact:"med",prior:"2.1%",fcst:"2.3%",actual:"—"}]
+  }
+};
+let eventsByMonth = FALLBACK_EVENTS;
+
+const impactColor = {high:"var(--red)", med:"var(--blue)", low:"var(--label-3)"};
+
+const __today = new Date();
+let YEAR = __today.getFullYear(), MONTH = __today.getMonth();
+const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function firstFriday(year, month){
+  const d = new Date(year, month, 1);
+  while(d.getDay() !== 5) d.setDate(d.getDate()+1);
+  return d.getDate();
+}
+
+/* ---------------- NQ QUARTERLY CONTRACT ROLLOVER (real CME rule) ----------------
+   Nasdaq-100 (NQ) futures: quarterly cycle Mar/Jun/Sep/Dec, code letters H/M/U/Z.
+   Standard expiry = 3rd Friday of the contract month. Roll window = 8 trading
+   sessions before expiry, which is when volume/liquidity shifts to the next contract. */
+const ROLL_SESSIONS = 8;
+const quarterlyMonths = [{m:2,code:'H'},{m:5,code:'M'},{m:8,code:'U'},{m:11,code:'Z'}];
+
+function thirdFriday(year, month){
+  const d = new Date(year, month, 1);
+  let count = 0;
+  while(true){ if(d.getDay()===5){ count++; if(count===3) return new Date(d); } d.setDate(d.getDate()+1); }
+}
+function buildExpiryList(startYear, endYear){
+  const list = [];
+  for(let y=startYear; y<=endYear; y++){
+    quarterlyMonths.forEach(q => list.push({ date: thirdFriday(y, q.m), code: q.code, year: y }));
+  }
+  list.sort((a,b)=> a.date-b.date);
+  return list;
+}
+const expiryList = buildExpiryList(2025, 2030);
+
+function subtractTradingDays(date, n){
+  const d = new Date(date);
+  let count = 0;
+  while(count < n){ d.setDate(d.getDate()-1); if(d.getDay()!==0 && d.getDay()!==6) count++; }
+  return d;
+}
+function tradingDaysBetween(a, b){ // count trading days strictly after a, up to and including b
+  let count = 0; const cur = new Date(a); cur.setDate(cur.getDate()+1);
+  while(cur <= b){ if(cur.getDay()!==0 && cur.getDay()!==6) count++; cur.setDate(cur.getDate()+1); }
+  return count;
+}
+function frontMonthContract(refDate){
+  return expiryList.find(e => e.date >= refDate) || expiryList[expiryList.length-1];
+}
+function contractInfo(dateObj){
+  const front = frontMonthContract(dateObj);
+  const idx = expiryList.indexOf(front);
+  const next = expiryList[idx+1];
+  const rollDate = subtractTradingDays(front.date, ROLL_SESSIONS);
+  const inRollWindow = dateObj >= rollDate && dateObj <= front.date;
+  const isExpiryDay = dateObj.toDateString() === front.date.toDateString();
+  return { front, next, rollDate, inRollWindow, isExpiryDay };
+}
+function contractLabel(c){ return `NQ${c.code}${String(c.year).slice(-1)}`; }
+
+// Precompute holidays as real Date objects so comparisons work correctly across month boundaries
+const holidayDates = holidays2026.map(h => ({ date: new Date(h.y, h.m-1, h.d), name: h.name }));
+
+function findHoliday(dateObj){
+  return holidayDates.find(h => h.date.toDateString() === dateObj.toDateString());
+}
+function findHolidayBuffer(dateObj){
+  const oneDay = 86400000;
+  return holidayDates.find(h => Math.abs(h.date - dateObj) === oneDay);
+}
+
+// BUGFIX: "NFP week" is defined by the first Friday of a month — and that Friday's
+// Monday can fall in the PREVIOUS month (e.g. Fri Dec 4 2026 is Dec's first Friday,
+// but its Monday is Nov 30). So rather than asking "is this month's first-Friday-Monday
+// equal to this date" (which breaks across month boundaries), we take THIS date's own
+// week's Friday and ask whether THAT Friday is the first Friday of ITS OWN month.
+function isNFPWeekMonday(dateObj){
+  if(dateObj.getDay() !== 1) return false;
+  const fri = new Date(dateObj); fri.setDate(dateObj.getDate()+4);
+  return fri.getDate() === firstFriday(fri.getFullYear(), fri.getMonth());
+}
+// Same idea, usable from any day in the week (used by the Week view banner)
+function isNFPWeek(anyDateInWeek){
+  const dow = anyDateInWeek.getDay(); // 0 Sun..6 Sat
+  const mondayOffset = dow===0 ? -6 : 1-dow;
+  const monday = new Date(anyDateInWeek); monday.setDate(anyDateInWeek.getDate()+mondayOffset);
+  return isNFPWeekMonday(monday);
+}
+
+function getEventsForDate(dateObj){
+  const key = `${dateObj.getFullYear()}-${dateObj.getMonth()+1}`;
+  return (eventsByMonth[key] || {})[dateObj.getDate()] || [];
+}
+
+// Custom no-trade dates the person adds manually (in-memory for this demo)
+let customNoTradeDates = [];
+function toISODate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function dayReasons(dateObj){
+  const weekday = dateObj.getDay(); // 0 Sun..6 Sat
+  const isMonday = weekday===1;
+  const holHit = findHoliday(dateObj);
+  const bufferHit = holHit ? null : findHolidayBuffer(dateObj);
+  const nfpMonday = isNFPWeekMonday(dateObj);
+  const isNFP = weekday===5 && dateObj.getDate()===firstFriday(dateObj.getFullYear(), dateObj.getMonth());
+  const customHit = customNoTradeDates.includes(toISODate(dateObj));
+
+  const reasons = [];
+  let status = 'trade'; // 'trade' | 'no-trade' (your rule, market open) | 'closed' (market itself shut)
+
+  if(weekday===6){ status='closed'; reasons.push({bad:true, text:"Saturday — CME futures market closed."}); }
+  else if(weekday===0){ status='closed'; reasons.push({bad:true, text:"Sunday — market reopens 6:00pm NY / 11:00pm London. Non-trade day for you."}); }
+  else if(holHit){ status='closed'; reasons.push({bad:true, text:`${holHit.name} — market closed.`}); }
+  else if(bufferHit){ status='no-trade'; reasons.push({bad:true, text:`Buffer day — adjacent to ${bufferHit.name}. You skip trading around holidays.`}); }
+  else if(customHit){ status='no-trade'; reasons.push({bad:true, text:"Custom day off — you added this one manually."}); }
+  else if(isMonday && !nfpMonday){ status='no-trade'; reasons.push({bad:true, text:"Monday — you sit out Mondays by default."}); }
+
+  if(nfpMonday && isMonday){ reasons.push({bad:false, text:"NFP week Monday — your exception rule puts this back in play."}); }
+  if(isNFP){ reasons.push({bad:false, text:"Nonfarm Payrolls day — expect elevated volatility."}); }
+  if(reasons.length===0){ reasons.push({bad:false, text:"No conflicts — standard trading day."}); }
+
+  const noTrade = status !== 'trade';
+  return {noTrade, status, reasons, isNFP, isNFPWeekMonday: nfpMonday, holHit, bufferHit, customHit};
+}
+
+/* ---------------- RENDER CALENDAR (Monday-first grid) ---------------- */
+function render(){
+  document.getElementById('monthTitle').textContent = `${monthNames[MONTH]} ${YEAR}`;
+  const grid = document.getElementById('dayGrid');
+  grid.innerHTML = '';
+
+  const daysInMonth = new Date(YEAR, MONTH+1, 0).getDate();
+  const rawStart = new Date(YEAR, MONTH, 1).getDay(); // 0 Sun..6 Sat
+  const startWeekday = (rawStart + 6) % 7; // convert to Mon=0..Sun=6
+  const todayStr = new Date().toDateString();
+
+  for(let i=0;i<startWeekday;i++){
+    const e = document.createElement('div'); e.className='day-cell empty'; grid.appendChild(e);
+  }
+
+  let tradeCount = 0;
+  let businessDayCount = 0;
+
+  for(let day=1; day<=daysInMonth; day++){
+    const dateObj = new Date(YEAR, MONTH, day);
+    const info = dayReasons(dateObj);
+    const cInfo = contractInfo(dateObj);
+    const weekday = dateObj.getDay();
+    if(weekday!==0 && weekday!==6) businessDayCount++;
+
+    const cell = document.createElement('div');
+    const stCls = {trade:'trade', 'no-trade':'no-trade', closed:'closed'}[info.status];
+    cell.className = 'day-cell ' + stCls;
+    if(info.status==='trade') tradeCount++;
+    if(dateObj.toDateString() === todayStr) cell.classList.add('today');
+    cell.innerHTML = `<div class="num">${day}</div>`;
+
+    const dayEvents = getEventsForDate(dateObj);
+    if(dayEvents.some(e=>e.impact==='high')){
+      const dot = document.createElement('div'); dot.className='hi-dot'; cell.appendChild(dot);
+    }
+
+    // Small, purposeful event dots — never more than what's actually happening that day
+    const dots = [];
+    if(info.holHit) dots.push('dot-hol');
+    else if(info.bufferHit) dots.push('dot-buf');
+    if(info.isNFP) dots.push('dot-nfp');
+    if(cInfo.isExpiryDay) dots.push('dot-exp');
+    if(dots.length){
+      cell.insertAdjacentHTML('beforeend', `<div class="dots">${dots.map(d=>`<span class="${d}"></span>`).join('')}</div>`);
+    }
+    if(cInfo.inRollWindow && !cInfo.isExpiryDay){
+      cell.insertAdjacentHTML('beforeend', `<div class="roll-bar"></div>`);
+    }
+
+    cell.addEventListener('click', ()=> openSheet(info, dayEvents, dateObj));
+    grid.appendChild(cell);
+  }
+
+  document.getElementById('monthStat').textContent = `${tradeCount} of ${businessDayCount} trading days`;
+}
+
+/* ---------------- DETAIL SHEET ---------------- */
+const backdrop = document.getElementById('backdrop');
+const sheet = document.getElementById('sheet');
+
+function openSheet(info, dayEvents, dateObj){
+  document.getElementById('sheetDate').textContent =
+    dateObj.toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric'});
+
+  const sheetVerdictMap = {
+    'trade': `<div class="verdict good">✓ Trade Day</div>`,
+    'no-trade': `<div class="verdict bad">✕ No-Trade Day</div>`,
+    'closed': `<div class="verdict bad">🔒 Market Closed</div>`
+  };
+  document.getElementById('sheetVerdict').innerHTML = sheetVerdictMap[info.status];
+
+  document.getElementById('reasonList').innerHTML = info.reasons.map(r=>
+    `<li><span class="b">${r.bad?'—':'•'}</span>${r.text}</li>`
+  ).join('');
+
+  const evWrap = document.getElementById('sheetEvents');
+  evWrap.innerHTML = dayEvents.length===0
+    ? `<div class="no-events">No scheduled releases.</div>`
+    : dayEvents.map(e=>`
+      <div class="ev-row">
+        <div class="ev-left">
+          <span class="ev-pip" style="background:${impactColor[e.impact]}"></span>
+          <div><div class="ev-name">${e.name}</div><div class="ev-time">${e.time} ET</div></div>
+        </div>
+        <div class="ev-vals">P ${e.prior}<br>F ${e.fcst}</div>
+      </div>
+    `).join('');
+
+  backdrop.classList.add('show');
+  sheet.classList.add('show');
+}
+function closeSheet(){ backdrop.classList.remove('show'); sheet.classList.remove('show'); }
+backdrop.addEventListener('click', closeSheet);
+document.getElementById('doneBtn').addEventListener('click', closeSheet);
+
+/* ---------------- COLLAPSIBLE LEGEND ---------------- */
+const legendGrid = document.getElementById('legendGrid');
+const legendChevron = document.getElementById('legendChevron');
+document.getElementById('legendHeader').addEventListener('click', ()=>{
+  legendGrid.classList.toggle('open');
+  legendChevron.classList.toggle('open');
+});
+
+/* ---------------- NAV ---------------- */
+document.getElementById('prevBtn').addEventListener('click', ()=>{ MONTH--; if(MONTH<0){MONTH=11; YEAR--;} render(); });
+document.getElementById('nextBtn').addEventListener('click', ()=>{ MONTH++; if(MONTH>11){MONTH=0; YEAR++;} render(); });
+
+/* ---------------- TODAY DASHBOARD: DATE + LONDON/NY CLOCKS ---------------- */
+function pad(n){return n<10?'0'+n:n;}
+
+function updateWeeklyDigest(){
+  // Uses THIS calendar week (Mon-Sun from today), independent of whatever week the Week screen is browsing
+  const now = new Date();
+  const dow = now.getDay();
+  const offset = dow===0 ? -6 : 1-dow;
+  const monday = new Date(now); monday.setDate(now.getDate()+offset); monday.setHours(0,0,0,0);
+
+  let noTradeCount = 0;
+  let holidayName = null;
+  for(let i=0;i<7;i++){
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    const info = dayReasons(d);
+    if(info.noTrade) noTradeCount++;
+    if(info.holHit) holidayName = info.holHit.name;
+  }
+  const nfpWeek = isNFPWeek(monday);
+
+  const parts = [`${noTradeCount} no-trade day${noTradeCount===1?'':'s'} this week`];
+  parts.push(nfpWeek ? 'NFP Friday' : 'no NFP');
+  parts.push(holidayName ? holidayName : 'no holidays');
+
+  document.getElementById('weeklyDigestBody').textContent = parts.join(' · ');
+}
+
+function updateDashboard(){
+  const now = new Date();
+
+  document.getElementById('todayDate').textContent =
+    now.toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric'});
+
+  const lonParts = new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',hour12:false,weekday:'short'}).formatToParts(now);
+  const nyParts = new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false,weekday:'short'}).formatToParts(now);
+  const nyHourParts = new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',hour12:false,weekday:'short'}).formatToParts(now);
+
+  const get = (parts,type)=> parts.find(p=>p.type===type).value;
+
+  document.getElementById('lonTime').textContent = `${get(lonParts,'hour')}:${get(lonParts,'minute')}`;
+  document.getElementById('nyTime').textContent = `${get(nyParts,'hour')}:${get(nyParts,'minute')}`;
+
+  const nyWeekday = get(nyHourParts,'weekday'); // Sun,Mon..Sat
+  const nyHour = parseInt(get(nyHourParts,'hour'),10);
+
+  let nyOpen = true;
+  if(nyWeekday==='Sat') nyOpen = false;
+  else if(nyWeekday==='Sun' && nyHour < 18) nyOpen = false;
+  else if(nyWeekday==='Fri' && nyHour >= 17) nyOpen = false; // daily settlement close simplification
+
+  document.getElementById('nyDot').className = 'sess ' + (nyOpen?'open':'closed');
+  document.getElementById('nyState').textContent = nyOpen ? 'Market open' : 'Market closed';
+
+  // London chip reflects the SAME underlying CME session, but flags user's personal Sunday rule
+  document.getElementById('lonDot').className = 'sess ' + (nyOpen?'open':'closed');
+  const lonWeekday = get(lonParts,'weekday');
+  document.getElementById('lonState').textContent = (lonWeekday==='Sun') ? 'Your non-trade day' : (nyOpen ? 'Market open' : 'Market closed');
+
+  // today's verdict badge — mirrors the day's actual status (trade / no-trade / closed)
+  const info = dayReasons(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+  const badge = document.getElementById('todayVerdict');
+  const statusMap = {
+    'trade':    {label:'✓ Trade Day',      cls:'good'},
+    'no-trade': {label:'✕ No-Trade Today', cls:'bad'},
+    'closed':   {label:'🔒 Market Closed', cls:'closed'}
+  };
+  const st = statusMap[info.status];
+  badge.textContent = st.label;
+  badge.className = 'today-verdict ' + st.cls;
+  document.getElementById('phone').querySelector('.today-card').className =
+    'today-card st-' + st.cls;
+
+  document.getElementById('time').textContent = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:false});
+  updateNextEvent(now);
+}
+
+/* Approximate ET offset by month (handles the DST window well enough for a demo) */
+function etOffset(month){ return (month>=2 && month<=10) ? '-04:00' : '-05:00'; }
+function eventDateTime(dateObj, timeStr){
+  const [hh,mm] = timeStr.split(':');
+  const y=dateObj.getFullYear(), m=String(dateObj.getMonth()+1).padStart(2,'0'), d=String(dateObj.getDate()).padStart(2,'0');
+  return new Date(`${y}-${m}-${d}T${hh.padStart(2,'0')}:${mm.padStart(2,'0')}:00${etOffset(dateObj.getMonth())}`);
+}
+function findNextEvent(now){
+  const cursor = new Date(now); cursor.setHours(0,0,0,0);
+  for(let i=0;i<14;i++){
+    const evs = getEventsForDate(cursor).map(e=>({...e, dt:eventDateTime(cursor,e.time)})).filter(e=>e.dt>now);
+    evs.sort((a,b)=>a.dt-b.dt);
+    if(evs.length) return evs[0];
+    cursor.setDate(cursor.getDate()+1);
+  }
+  return null;
+}
+function updateNextEvent(now){
+  const row = document.getElementById('nextEventRow');
+  const next = findNextEvent(now);
+  if(!next){ row.style.display = 'none'; return; }
+
+  const diffMs = next.dt - now;
+  const hrs = Math.floor(diffMs/3600000);
+  if(hrs >= 24){ row.style.display = 'none'; return; }
+  const mins = Math.floor((diffMs%3600000)/60000);
+  const countdown = `${hrs}h ${mins}m`;
+
+  const dotColorMap = {high:'var(--red)', med:'var(--blue)', low:'var(--label-3)'};
+  document.getElementById('nextEventDot').style.background = dotColorMap[next.impact];
+  document.getElementById('nextEventText').textContent = `${next.name} in ${countdown}`;
+  row.style.display = 'flex';
+}
+/* ---------------- CONTRACT ROLLOVER CARD ---------------- */
+function updateContractCard(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const c = contractInfo(today);
+
+  document.getElementById('frontCode').textContent = contractLabel(c.front);
+
+  const expDays = Math.max(0, Math.round((c.front.date - today)/86400000));
+  const rollDays = Math.max(0, Math.round((c.rollDate - today)/86400000));
+  const rollHeadline = document.getElementById('rollHeadline');
+  rollHeadline.innerHTML = c.inRollWindow
+    ? `<b>Rolling now</b>`
+    : `Roll over in <b>${rollDays}</b> days`;
+
+  // Upcoming contracts list (front month + next 3), shown only when expanded.
+  // Front-month row shows both roll-in and expiry countdowns; future contracts
+  // aren't actionable yet, so they just show their expiry date.
+  const idx = expiryList.indexOf(c.front);
+  const upcoming = expiryList.slice(idx, idx+4);
+  const list = document.getElementById('contractList');
+  list.innerHTML = upcoming.map((e,i)=>{
+    const dateStr = e.date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const detail = i===0 ? `Roll in ${rollDays}d · Expires in ${expDays}d` : dateStr;
+    return `
+      <div class="contract-list-row ${i===0?'front':''}">
+        <div class="clr-code">${contractLabel(e)}${i===0?'<span class="clr-badge">Front</span>':''}</div>
+        <div>${detail}</div>
+      </div>`;
+  }).join('');
+
+  // Progress through the current contract's lifespan (previous expiry -> this expiry)
+  const prevExpiry = expiryList[idx-1];
+  const start = prevExpiry ? prevExpiry.date : subtractTradingDays(c.front.date, 63);
+  const totalDays = Math.max(1, Math.round((c.front.date - start)/86400000));
+  const elapsedDays = Math.min(totalDays, Math.max(0, Math.round((today - start)/86400000)));
+  const pct = (elapsedDays/totalDays)*100;
+  document.getElementById('contractBar').style.width = pct + '%';
+  document.getElementById('contractBarCaption').textContent = `Day ${elapsedDays} of ${totalDays} in this contract`;
+}
+
+const contractHeader = document.getElementById('contractHeader');
+const contractExpand = document.getElementById('contractExpand');
+const contractChevron = document.getElementById('contractChevron');
+contractHeader.addEventListener('click', ()=>{
+  contractExpand.classList.toggle('open');
+  contractChevron.classList.toggle('open');
+});
+
+updateDashboard(); setInterval(updateDashboard, 30000);
+updateContractCard();
+updateWeeklyDigest();
+
+/* ---------------- TAB SWITCHING ---------------- */
+const tabs = document.querySelectorAll('.tab');
+const screens = document.querySelectorAll('.screen');
+tabs.forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    tabs.forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = 'screen' + tab.dataset.screen.charAt(0).toUpperCase() + tab.dataset.screen.slice(1);
+    screens.forEach(s=> s.classList.toggle('active', s.id===target));
+    if(tab.dataset.screen==='week') renderWeek();
+  });
+});
+
+/* ---------------- WEEK VIEW ---------------- */
+let WEEK_MONDAY = (()=>{
+  const now = new Date();
+  const dow = now.getDay();
+  const offset = dow===0 ? -6 : 1-dow;
+  const mon = new Date(now); mon.setDate(now.getDate()+offset);
+  mon.setHours(0,0,0,0);
+  return mon;
+})();
+
+const dayAbbr = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const monthAbbr = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function renderWeek(){
+  const monday = WEEK_MONDAY;
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  document.getElementById('weekTitle').textContent =
+    `${monthAbbr[monday.getMonth()]} ${monday.getDate()} – ${monthAbbr[sunday.getMonth()]} ${sunday.getDate()}`;
+
+  const nfpWeek = isNFPWeek(monday);
+  document.getElementById('nfpBanner').style.display = nfpWeek ? 'flex' : 'none';
+
+  const list = document.getElementById('weekList');
+  list.innerHTML = '';
+  const todayStr = new Date().toDateString();
+
+  for(let i=0;i<7;i++){
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    const info = dayReasons(d);
+    const dayEvents = getEventsForDate(d);
+    const isToday = d.toDateString()===todayStr;
+    const isWeekend = i>=5;
+
+    const statusLabel = {trade:'Trade Day', 'no-trade':'No-Trade', closed: isWeekend ? 'Market Closed' : 'Closed'}[info.status];
+    const statusClass = {trade:'good', 'no-trade':'bad', closed:'closed'}[info.status];
+
+    let eventsText = 'No releases';
+    if(dayEvents.length){
+      eventsText = dayEvents.length===1 ? dayEvents[0].name : `${dayEvents.length} releases incl. ${dayEvents.find(e=>e.impact==='high')?.name || dayEvents[0].name}`;
+    }
+    if(info.isNFP) eventsText = 'Nonfarm Payrolls';
+
+    const row = document.createElement('div');
+    row.className = 'week-row' + (isToday?' today':'') + (isWeekend?' dim':'');
+    row.innerHTML = `
+      <div class="wr-left">
+        <div class="wr-date"><div class="wr-day">${dayAbbr[i]}</div><div class="wr-num">${d.getDate()}</div></div>
+        <div class="wr-info">
+          <div class="wr-status ${statusClass}">${statusLabel}${info.isNFP?' · NFP':''}</div>
+          <div class="wr-events">${eventsText}</div>
+        </div>
+      </div>
+      ${dayEvents.some(e=>e.impact==='high') ? '<div class="wr-hi"></div>' : ''}
+    `;
+    row.addEventListener('click', ()=> openSheet(info, dayEvents, d));
+    list.appendChild(row);
+  }
+}
+
+document.getElementById('prevWeekBtn').addEventListener('click', ()=>{
+  WEEK_MONDAY.setDate(WEEK_MONDAY.getDate()-7); renderWeek();
+});
+document.getElementById('nextWeekBtn').addEventListener('click', ()=>{
+  WEEK_MONDAY.setDate(WEEK_MONDAY.getDate()+7); renderWeek();
+});
+
+/* ---------------- ALERTS: TOGGLES (synced with backend prefs) ---------------- */
+document.querySelectorAll('[data-toggle]').forEach(t=>{
+  t.addEventListener('click', async ()=>{
+    t.classList.toggle('on');
+    if(!API_BASE) return;
+    const key = t.dataset.pref;
+    if(!key) return;
+    try{
+      await fetch(`${API_BASE}/api/prefs`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ [key]: t.classList.contains('on') })
+      });
+    }catch(err){ console.error('Failed to save preference:', err); }
+  });
+});
+
+/* ---------------- CUSTOM NO-TRADE DATES (synced with backend) ---------------- */
+function renderCustomDates(){
+  const list = document.getElementById('customDateList');
+  if(customNoTradeDates.length === 0){
+    list.innerHTML = `<div class="custom-empty">No custom dates added yet.</div>`;
+    return;
+  }
+  const sorted = [...customNoTradeDates].sort();
+  list.innerHTML = sorted.map(iso=>{
+    const d = new Date(iso + 'T00:00:00');
+    const label = d.toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric', year:'numeric'});
+    return `<div class="custom-date-row"><span>${label}</span><span class="custom-date-remove" data-remove="${iso}">✕</span></div>`;
+  }).join('');
+}
+
+function refreshAllViews(){
+  render();
+  renderWeek();
+  updateDashboard();
+  updateWeeklyDigest();
+}
+
+document.getElementById('addDateBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('customDateInput');
+  if(!input.value) return;
+  if(!customNoTradeDates.includes(input.value)){
+    customNoTradeDates.push(input.value);
+    renderCustomDates();
+    refreshAllViews();
+    if(API_BASE){
+      try{
+        await fetch(`${API_BASE}/api/custom-dates`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ date: input.value })
+        });
+      }catch(err){ console.error('Failed to save custom date:', err); }
+    }
+  }
+  input.value = '';
+});
+
+document.getElementById('customDateList').addEventListener('click', async (e)=>{
+  const iso = e.target.dataset.remove;
+  if(!iso) return;
+  customNoTradeDates = customNoTradeDates.filter(d=>d!==iso);
+  renderCustomDates();
+  refreshAllViews();
+  if(API_BASE){
+    try{ await fetch(`${API_BASE}/api/custom-dates/${iso}`, { method:'DELETE' }); }
+    catch(err){ console.error('Failed to remove custom date:', err); }
+  }
+});
+
+/* ---------------- PUSH NOTIFICATIONS ---------------- */
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function enablePush(){
+  const note = document.getElementById('pushStatusNote');
+  if(!API_BASE){ note.textContent = 'Set API_BASE in the code once your backend is deployed.'; return; }
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+    note.textContent = 'Push notifications aren\'t supported in this browser.'; return;
+  }
+  try{
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){ note.textContent = 'Notifications permission was denied.'; return; }
+
+    const reg = await navigator.serviceWorker.register('sw.js');
+    const { key } = await fetch(`${API_BASE}/api/vapid-public-key`).then(r=>r.json());
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key)
+    });
+    await fetch(`${API_BASE}/api/subscribe`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(sub)
+    });
+    note.textContent = 'Push notifications enabled on this device.';
+  }catch(err){
+    console.error(err);
+    note.textContent = 'Something went wrong enabling push — check the console.';
+  }
+}
+document.getElementById('enablePushBtn').addEventListener('click', enablePush);
+document.getElementById('testPushBtn').addEventListener('click', async ()=>{
+  if(!API_BASE) return;
+  try{ await fetch(`${API_BASE}/api/test-notification`, { method:'POST' }); }
+  catch(err){ console.error(err); }
+});
+
+/* ---------------- LOAD REAL DATA FROM BACKEND ---------------- */
+async function loadFromBackend(){
+  if(!API_BASE) return;
+  try{
+    const [events, prefs, dates] = await Promise.all([
+      fetch(`${API_BASE}/api/events`).then(r=>r.json()),
+      fetch(`${API_BASE}/api/prefs`).then(r=>r.json()),
+      fetch(`${API_BASE}/api/custom-dates`).then(r=>r.json()),
+    ]);
+    if(events && Object.keys(events).length) eventsByMonth = events;
+    customNoTradeDates = dates || [];
+    document.querySelectorAll('[data-pref]').forEach(t=>{
+      const on = !!prefs[t.dataset.pref];
+      t.classList.toggle('on', on);
+    });
+    renderCustomDates();
+    refreshAllViews();
+  }catch(err){
+    console.error('Could not reach backend, staying on mock data:', err);
+  }
+}
+
+renderCustomDates();
+render();
+loadFromBackend();
+</script>
+
+</body>
+</html>
