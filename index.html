@@ -42,25 +42,17 @@
     border-radius:55px;border:10px solid #1a1a1a;
     box-shadow:0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px #2a2a2a;
     overflow:hidden;position:relative;display:flex;flex-direction:column;
+    padding-top:54px; /* room for the desktop mockup preview; overridden below on real devices */
   }
-  /* On a real phone, drop the desktop "mockup" chrome and just fill the screen like a real app */
+  /* On a real phone (installed PWA), drop the desktop "mockup" chrome entirely and let
+     iOS's own status bar/notch do their job — just reserve the real safe-area inset. */
   @media (max-width: 500px){
     body{padding:0;align-items:stretch;}
     .phone{
       width:100vw;height:100dvh;border-radius:0;border:none;box-shadow:none;
+      padding-top:env(safe-area-inset-top, 20px);
     }
-    .dynamic-island{display:none;}
   }
-  .dynamic-island{
-    position:absolute;top:12px;left:50%;transform:translateX(-50%);
-    width:126px;height:37px;background:#000;border-radius:20px;z-index:20;
-  }
-  .statusbar{
-    height:54px;flex-shrink:0;display:flex;align-items:flex-end;
-    justify-content:space-between;padding:0 26px 8px;color:var(--label);
-    font-size:15px;font-weight:600;
-  }
-  .statusbar .icons{display:flex;gap:5px;align-items:center;}
 
   /* TODAY DASHBOARD CARD */
   .today-card{
@@ -311,6 +303,7 @@
   .tabbar{
     flex-shrink:0;display:flex;justify-content:space-around;align-items:center;
     padding:8px 0 26px;background:rgba(28,28,30,0.94);border-top:1px solid var(--sep);
+    padding-bottom:max(26px, env(safe-area-inset-bottom, 26px));
   }
   .tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--label-3);font-size:10px;font-weight:500;}
   .tab.active{color:var(--blue);}
@@ -363,12 +356,6 @@
 <body>
 
 <div class="phone" id="phone">
-  <div class="dynamic-island"></div>
-  <div class="statusbar">
-    <div id="time">9:41</div>
-    <div class="icons"><span>••••</span><span>📶</span><span>🔋</span></div>
-  </div>
-
   <div class="today-card">
     <div class="today-top">
       <div class="today-date" id="todayDate">—</div>
@@ -921,7 +908,6 @@ function updateDashboard(){
   document.getElementById('phone').querySelector('.today-card').className =
     'today-card st-' + st.cls;
 
-  document.getElementById('time').textContent = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:false});
   updateNextEvent(now);
 }
 
